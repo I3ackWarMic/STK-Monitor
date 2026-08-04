@@ -82,6 +82,23 @@ def index():
         </tr>
         """
 
+    ping_rows = ""
+    for r in results:
+        status_color = "#3ddc84" if r["up"] else "#ff5c5c"
+        duration = max(r["response_ms"] / 1000, 0.6)  # วินาที, ขั้นต่ำ 0.6s ให้เห็นชัด
+        ping_rows += f"""
+        <div class="ping-row">
+            <div class="ping-label">{r['name']}</div>
+            <div class="ping-track">
+                <div class="node source">🖥️</div>
+                <div class="line"></div>
+                <div class="dot" style="--dur:{duration}s; --color:{status_color};"></div>
+                <div class="node target">🌐</div>
+            </div>
+            <div class="ping-time" style="color:{status_color}">{r['response_ms']} ms</div>
+        </div>
+        """
+
     html = f"""
     <!DOCTYPE html>
     <html lang="th">
@@ -110,6 +127,73 @@ def index():
             .card .label {{ font-size: 13px; color: #8b8f9a; margin-top: 4px; }}
             .card.up .num {{ color: #3ddc84; }}
             .card.down .num {{ color: #ff5c5c; }}
+
+            .ping-box {{
+                background: #1a1d27;
+                border: 1px solid #2a2e3a;
+                border-radius: 10px;
+                padding: 20px;
+                margin-bottom: 24px;
+            }}
+            .ping-box h3 {{ font-size: 14px; color: #8b8f9a; margin-bottom: 16px; }}
+            .ping-row {{
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-bottom: 18px;
+            }}
+            .ping-label {{
+                width: 140px;
+                font-size: 13px;
+                font-weight: 600;
+                flex-shrink: 0;
+            }}
+            .ping-track {{
+                position: relative;
+                flex: 1;
+                height: 24px;
+                display: flex;
+                align-items: center;
+            }}
+            .node {{ font-size: 18px; z-index: 2; }}
+            .line {{
+                position: absolute;
+                left: 20px;
+                right: 20px;
+                top: 50%;
+                height: 2px;
+                background: repeating-linear-gradient(
+                    90deg, #2a2e3a 0, #2a2e3a 6px, transparent 6px, transparent 12px
+                );
+                transform: translateY(-50%);
+            }}
+            .dot {{
+                position: absolute;
+                left: 20px;
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: var(--color);
+                box-shadow: 0 0 10px var(--color);
+                top: 50%;
+                transform: translateY(-50%);
+                animation: pingpong var(--dur) ease-in-out infinite;
+            }}
+            @keyframes pingpong {{
+                0%   {{ left: 20px; opacity: 1; }}
+                48%  {{ left: calc(100% - 30px); opacity: 1; }}
+                50%  {{ opacity: 0.3; }}
+                52%  {{ left: calc(100% - 30px); opacity: 1; }}
+                100% {{ left: 20px; opacity: 1; }}
+            }}
+            .ping-time {{
+                width: 60px;
+                text-align: right;
+                font-size: 13px;
+                font-weight: 600;
+                flex-shrink: 0;
+            }}
+
             .charts {{
                 display: grid;
                 grid-template-columns: 1fr 2fr;
@@ -152,6 +236,11 @@ def index():
                 <div class="card up"><div class="num">{online_count}</div><div class="label">ONLINE</div></div>
                 <div class="card down"><div class="num">{total_count - online_count}</div><div class="label">OFFLINE</div></div>
                 <div class="card"><div class="num">{total_count}</div><div class="label">TOTAL SITES</div></div>
+            </div>
+
+            <div class="ping-box">
+                <h3>📡 Live Ping</h3>
+                {ping_rows}
             </div>
 
             <div class="charts">
