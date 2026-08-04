@@ -185,6 +185,36 @@
 
         function checkAllWebsites() {
             document.getElementById('global-status').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบระบบเว็บของท่าน...`;
-            
             const promises = websites.map((web, index) => checkWebsite(web, index));
-            
+                        Promise.all(promises).then(results => {
+                const online = results.filter(r => r).length;
+                const offline = results.length - online;
+
+                const globalStatus = document.getElementById("global-status");
+
+                if (offline === 0) {
+                    globalStatus.innerHTML =
+                        `<i class="fa-solid fa-circle-check" style="color:#10b981"></i>
+                        ระบบทั้งหมดทำงานปกติ (${online}/${results.length})`;
+                } else {
+                    globalStatus.innerHTML =
+                        `<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i>
+                        พบปัญหา ${offline} เว็บไซต์ จากทั้งหมด ${results.length} เว็บไซต์`;
+                }
+            });
+        }
+
+        // ตรวจสอบอัตโนมัติทุก 60 วินาที
+        function startAutoCheck() {
+            checkAllWebsites();
+            setInterval(checkAllWebsites, 60000);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initMonitor();
+            startAutoCheck();
+        });
+    </script>
+
+</body>
+</html>
