@@ -76,7 +76,7 @@ def index():
     <head>
         <meta charset="utf-8">
         <meta http-equiv="refresh" content="60">
-        <title>STK Monitor</title>
+        <title>Nes Monitor</title>
         <style>
             * {{ box-sizing: border-box; margin: 0; padding: 0; }}
             body {{
@@ -175,7 +175,7 @@ def index():
     </head>
     <body>
         <div class="container">
-            <h1>🛰️ Monitor Url </h1>
+            <h1>🛰️Nes Monitor</h1>
             <div class="subtitle">อัปเดตล่าสุด: {now} · รีเฟรชอัตโนมัติทุก 60 วินาที</div>
 
             <div class="summary">
