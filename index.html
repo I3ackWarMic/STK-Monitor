@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BKK Pawnshop Uptime Monitor</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <link rel="stylesheet" href="https://cloudflare.com">
+    
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --green-online: #10b981;
+            --red-offline: #ef4444;
+            --border-color: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); color: var(--text-main); padding: 30px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 1100px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 25px; border-radius: 16px; border: 1px solid var(--border-color); margin-bottom: 25px; }
+        .header-title h1 { font-size: 1.6rem; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 12px; }
+        .header-title p { font-size: 0.9rem; color: var(--text-muted); margin-top: 5px; }
+        
+        .btn { background: #3b82f6; border: none; color: white; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn-mute { background: #475569; }
+        .btn-mute.muted { background: #ea580c; }
+        .controls { display: flex; gap: 10px; }
+
+        .monitor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .web-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: all 0.2s; }
+        .web-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .web-info h3 { font-size: 1.1rem; font-weight: 600; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+        .web-info p { font-size: 0.8rem; color: var(--text-muted); word-break: break-all; margin-top: 3px; }
+        
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+        .status-badge.online { background: rgba(16, 185, 129, 0.15); color: var(--green-online); border: 1px solid var(--green-online); }
+        .status-badge.offline { background: rgba(239, 68, 68, 0.15); color: var(--red-offline); border: 1px solid var(--red-offline); }
+        .status-badge.checking { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid var(--border-color); }
+        
+        .card-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 15px; font-size: 0.8rem; color: var(--text-muted); }
+        .latency { font-weight: 600; }
+        .latency.good { color: var(--green-online); }
+        .latency.bad { color: #f59e0b; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">
+                <h1><i class="fa-solid fa-square-poll-horizontal" style="color:#22c55e;"></i> บอร์ดตรวจสอบสถานะเว็บระบบจำนา</h1>
+                <p id="global-status"><i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบระบบเว็บทั้งหมด...</p>
+            </div>
+            <div class="controls">
+                <button id="mute-btn" class="btn btn-mute" onclick="toggleMute()"><i class="fa-solid fa-volume-high"></i> เปิดเสียงเตือน</button>
+                <button class="btn" onclick="checkAllWebsites()"><i class="fa-solid fa-rotate"></i> ตรวจสอบทันที</button>
+            </div>
+        </div>
+
+        <!-- Monitor Grid -->
+        <div class="monitor-grid" id="monitor-list">
+            <!-- รายชื่อการ์ดจะขึ้นตรงนี้ -->
+        </div>
+    </div>
+
+    <script>
+        // 🛠️ ลิสต์รายชื่อเว็บไซต์ทั้ง 3 ลิงก์ที่คุณส่งมาเรียบร้อยแล้วครับ
+        const websites = [
+            { name: "ระบบรับจำนำ (Pledge)", url: "https://bangkok.go.th" },
+            { name: "เว็บบอร์ดสถานธนานุบาล", url: "http://bangkok.go.th" },
+            { name: "หน้าเว็บไซต์หลัก (New)", url: "http://bangkok.go.th" }
+        ];
+
+        let isMuted = true; 
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playAlertSound() {
+            if (isMuted) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.4);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch (e) { console.error(e); }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('mute-btn');
+            if (isMuted) {
+                btn.className = "btn btn-mute muted";
+                btn.innerHTML = `<i class="fa-solid fa-volume-xmark"></i> ปิดเสียงเตือนแล้ว`;
+            } else {
+                btn.className = "btn btn-mute";
+                btn.innerHTML = `<i class="fa-solid fa-volume-high"></i> เปิดเสียงเตือนแล้ว`;
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            }
+        }
+
+        function initMonitor() {
+            const list = document.getElementById('monitor-list');
+            list.innerHTML = '';
+            websites.forEach((web, index) => {
+                list.innerHTML += `
+                    <div class="web-card" id="card-${index}">
+                        <div class="card-top">
+                            <div class="web-info">
+                                <h3 title="${web.name}">${web.name}</h3>
+                                <p title="${web.url}">${web.url}</p>
+                            </div>
+                            <div class="status-badge checking" id="status-${index}">
+                                <i class="fa-solid fa-spinner fa-spin"></i> เช็กระบบ
+                            </div>
+                        </div>
+                        <div class="card-bottom">
+                            <span>การตอบสนอง: <span class="latency" id="latency-${index}">-</span></span>
+                            <span id="time-${index}">รอการตรวจสอบ</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function checkWebsite(web, index) {
+            const startTime = performance.now();
+            const proxyUrl = 'https://allorigins.win' + encodeURIComponent(web.url);
+
+            return fetch(proxyUrl)
+                .then(response => {
+                    if (!response.ok) throw new Error('Offline');
+                    return response.json();
+                })
+                .then(() => {
+                    const duration = Math.round(performance.now() - startTime);
+                    updateCardStatus(index, true, duration);
+                    return true;
+                })
+                .catch(() => {
+                    updateCardStatus(index, false, 0);
+                    return false;
+                });
+        }
+
+        function updateCardStatus(index, isOnline, duration) {
+            const card = document.getElementById(`card-${index}`);
+            const badge = document.getElementById(`status-${index}`);
+            const latencyElement = document.getElementById(`latency-${index}`);
+            const timeElement = document.getElementById(`time-${index}`);
+            const now = new Date().toLocaleTimeString('th-TH');
+
+            timeElement.innerText = `ตรวจเมื่อ: ${now}`;
+
+            if (isOnline) {
+                card.style.borderLeft = "5px solid var(--green-online)";
+                badge.className = "status-badge online";
+                badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Online`;
+                latencyElement.innerText = duration + " ms";
+                latencyElement.className = duration < 1200 ? "latency good" : "latency bad";
+            } else {
+                card.style.borderLeft = "5px solid var(--red-offline)";
+                badge.className = "status-badge offline";
+                badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Offline`;
+                latencyElement.innerText = "ล้มเหลว";
+                latencyElement.className = "latency bad";
+                playAlertSound(); 
+            }
+        }
+
+        function checkAllWebsites() {
+            document.getElementById('global-status').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบระบบเว็บของท่าน...`;
+            
+            const promises = websites.map((web, index) => checkWebsite(web, index));
+            
+            Promise.all(promises).then(results => {
