@@ -9,7 +9,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 app = Flask(__name__)
 
 TARGETS = {
-    "pledge1_login": "https://pledge1.bangkok.go.th/sec_Login/",
+    "pledge1_login": "https://pledge1.bangkok.go.th/",
     "pawnshop_webboard": "http://pawnshop.bangkok.go.th/webboard/",
     "pawnshop_index": "http://pawnshop.bangkok.go.th/indexnew.html",
 }
