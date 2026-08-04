@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BKK Pawnshop Uptime Monitor</title>
+    <title>ระบบตรวจสอบสถานะเว็บสถานธนานุบาล</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <link rel="stylesheet" href="https://cloudflare.com">
     
@@ -33,11 +33,11 @@
         .controls { display: flex; gap: 10px; }
 
         .monitor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .web-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: all 0.2s; }
+        .web-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: all 0.2s; border-left: 5px solid #475569; }
         .web-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
         
         .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-        .web-info h3 { font-size: 1.1rem; font-weight: 600; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+        .web-info h3 { font-size: 1.1rem; font-weight: 600; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
         .web-info p { font-size: 0.8rem; color: var(--text-muted); word-break: break-all; margin-top: 3px; }
         
         .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
@@ -57,8 +57,8 @@
         <!-- Header -->
         <div class="header">
             <div class="header-title">
-                <h1><i class="fa-solid fa-square-poll-horizontal" style="color:#22c55e;"></i> บอร์ดตรวจสอบสถานะเว็บระบบจำนา</h1>
-                <p id="global-status"><i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบระบบเว็บทั้งหมด...</p>
+                <h1><i class="fa-solid fa-server" style="color:#3b82f6;"></i> บอร์ดตรวจสอบสถานะเว็บระบบจำนำ</h1>
+                <p id="global-status"><i class="fa-solid fa-spinner fa-spin"></i> กำลังเตรียมการตรวจสอบระบบ...</p>
             </div>
             <div class="controls">
                 <button id="mute-btn" class="btn btn-mute" onclick="toggleMute()"><i class="fa-solid fa-volume-high"></i> เปิดเสียงเตือน</button>
@@ -68,16 +68,16 @@
 
         <!-- Monitor Grid -->
         <div class="monitor-grid" id="monitor-list">
-            <!-- รายชื่อการ์ดจะขึ้นตรงนี้ -->
+            <!-- กล่องรายชื่อเว็บจะถูกสร้างขึ้นตรงนี้อัตโนมัติ -->
         </div>
     </div>
 
     <script>
-        // 🛠️ ลิสต์รายชื่อเว็บไซต์ทั้ง 3 ลิงก์ที่คุณส่งมาเรียบร้อยแล้วครับ
+        // 🔗 รายชื่อเว็บไซต์ระบบจำนำของคุณทั้ง 3 เว็บตามที่ระบุไว้ครับ
         const websites = [
-            { name: "ระบบรับจำนำ (Pledge)", url: "https://bangkok.go.th" },
-            { name: "เว็บบอร์ดสถานธนานุบาล", url: "http://bangkok.go.th" },
-            { name: "หน้าเว็บไซต์หลัก (New)", url: "http://bangkok.go.th" }
+            { name: "ระบบรับจำนำ (Login)", url: "https://bangkok.go.th" },
+            { name: "เว็บบอร์ดระบบจำนำ", url: "http://bangkok.go.th" },
+            { name: "หน้าเว็บไซต์หลัก", url: "http://bangkok.go.th" }
         ];
 
         let isMuted = true; 
@@ -89,7 +89,7 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.4);
                 gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
@@ -130,7 +130,7 @@
                         </div>
                         <div class="card-bottom">
                             <span>การตอบสนอง: <span class="latency" id="latency-${index}">-</span></span>
-                            <span id="time-${index}">รอการตรวจสอบ</span>
+                            <span id="time-${index}">รอตรวจสอบ</span>
                         </div>
                     </div>
                 `;
@@ -139,6 +139,7 @@
 
         function checkWebsite(web, index) {
             const startTime = performance.now();
+            // ใช้ proxy เพื่อให้ฝั่งหน้าบ้านสามารถตรวจสอบสถานะเว็บภายนอกได้โดยตรง
             const proxyUrl = 'https://allorigins.win' + encodeURIComponent(web.url);
 
             return fetch(proxyUrl)
@@ -178,7 +179,7 @@
                 badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Offline`;
                 latencyElement.innerText = "ล้มเหลว";
                 latencyElement.className = "latency bad";
-                playAlertSound(); 
+                playAlertSound();
             }
         }
 
@@ -187,4 +188,3 @@
             
             const promises = websites.map((web, index) => checkWebsite(web, index));
             
-            Promise.all(promises).then(results => {
