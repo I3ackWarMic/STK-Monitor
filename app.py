@@ -40,6 +40,8 @@ def check_site(name, url, timeout=15):
 def check_all():
     return [check_site(name, url) for name, url in TARGETS.items()]
 
+import os
+
 if __name__ == "__main__":
-    for r in check_all():
-        print(r)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
