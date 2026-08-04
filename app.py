@@ -175,7 +175,7 @@ def index():
     </head>
     <body>
         <div class="container">
-            <h1>🛰️ STK Monitor</h1>
+            <h1>🛰️ Monitor Url </h1>
             <div class="subtitle">อัปเดตล่าสุด: {now} · รีเฟรชอัตโนมัติทุก 60 วินาที</div>
 
             <div class="summary">
