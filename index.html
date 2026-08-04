@@ -9,9 +9,23 @@ TARGETS = {
     "pawnshop_index": "http://pawnshop.bangkok.go.th/indexnew.html",
 }
 
-def check_site(name, url, timeout=10):
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Connection": "keep-alive",
+}
+
+def check_site(name, url, timeout=15):
     try:
-        resp = requests.get(url, timeout=timeout, verify=False, allow_redirects=True)
+        resp = requests.get(
+            url,
+            headers=HEADERS,
+            timeout=timeout,
+            verify=False,
+            allow_redirects=True,
+        )
         return {
             "name": name,
             "url": url,
@@ -25,15 +39,16 @@ def check_site(name, url, timeout=10):
             "url": url,
             "status_code": None,
             "up": False,
-            "error": str(e),
+            "error": repr(e),
         }
 
 def check_all():
     results = []
     for name, url in TARGETS.items():
-        results.append(check_site(name, url))
+        r = check_site(name, url)
+        print(f"[{name}] status={r['status_code']} up={r['up']} error={r['error']}")
+        results.append(r)
     return results
 
 if __name__ == "__main__":
-    for r in check_all():
-        print(r)
+    check_all()
